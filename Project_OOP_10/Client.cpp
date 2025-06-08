@@ -34,3 +34,18 @@ void Client::logout() {
 Cart& Client::getCart() {
     return cart;
 }
+
+void Client::addToCart(int productId, int quantity) {
+    cart.addItem(productId, quantity);
+    std::cout << "Item added to cart.\n";
+}
+
+void Client::removeFromCart(int productId, int quantity) {
+    cart.removeItem(productId, quantity);
+    std::cout << "Item removed from cart.\n";
+}
+
+void Client::viewCart(Product* products, int productCount) const {
+    cart.viewCart(products, productCount);
+}
+

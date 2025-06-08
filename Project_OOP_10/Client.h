@@ -2,6 +2,8 @@
 #include "User.h"
 #include "Cart.h"
 
+
+
 class Client : public User {
 private:
     Cart cart;
@@ -11,4 +13,9 @@ public:
     void logout() override;
 
     Cart& getCart();
+
+    void addToCart(int productId, int quantity);
+    void removeFromCart(int productId, int quantity);
+    void viewCart(Product* products, int productCount) const;
+
 };

@@ -33,7 +33,6 @@ void Cart::removeItem(int productId, int quantity) {
         if (productIds[i] == productId) {
             quantities[i] -= quantity;
             if (quantities[i] <= 0) {
-                // remove item
                 for (int j = i; j < itemCount - 1; ++j) {
                     productIds[j] = productIds[j + 1];
                     quantities[j] = quantities[j + 1];
@@ -90,4 +89,22 @@ double Cart::calculateTotal(Product* products, int productCount) const {
 
 bool Cart::isEmpty() const {
     return itemCount == 0;
+}
+
+int Cart::getItemCount() const {
+    return itemCount;
+}
+
+int Cart::getProductIdAt(int index) const {
+    if (index >= 0 && index < itemCount) {
+        return productIds[index];
+    }
+    return -1;
+}
+
+int Cart::getQuantityAt(int index) const {
+    if (index >= 0 && index < itemCount) {
+        return quantities[index];
+    }
+    return 0;
 }
