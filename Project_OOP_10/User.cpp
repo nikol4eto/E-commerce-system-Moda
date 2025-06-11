@@ -1,48 +1,50 @@
 #include "User.h"
 
-User::User(const char* nameInput, const char* egnInput, const char* passwordInput) {
-    //  copy  name
-    int i = 0;
-    while (nameInput[i] != '\0' && i < 99) {
-        name[i] = nameInput[i];
-        i++;
-    }
-    name[i] = '\0';
+User::User() {}
 
-    //  copy  EGN
-    i = 0;
-    while (egnInput[i] != '\0' && i < 14) {
-        egn[i] = egnInput[i];
-        i++;
-    }
-    egn[i] = '\0';
-
-    //  copy for password
-    i = 0;
-    while (passwordInput[i] != '\0' && i < 49) {
-        password[i] = passwordInput[i];
-        i++;
-    }
-    password[i] = '\0';
+User::User(const String nameInput, const String egnInput, const String passwordInput) {
+    name = nameInput;
+    egn = egnInput;
+    password = passwordInput;
 }
 
 void User::viewProfile() const {
-    std::cout << "Name: " << name << "\nEGN: " << egn << std::endl;
+    std::cout << "Name: " << name.data << "\nEGN: " << egn.data << std::endl;
 }
 
-const char* User::getName() const {
+String User::getRole() const
+{
+    return String("None");
+}
+
+String User::saveData() const
+{
+    String item = String();
+    item.append("None");
+    item.append(":");
+    item.append(name);
+    item.append(":");
+    item.append(egn);
+    item.append(":");
+    item.append(password);
+
+    return item;
+}
+
+const String User::getName() const {
     return name;
 }
 
-const char* User::getEGN() const {
+const String User::getEGN() const {
     return egn;
 }
 
-bool User::checkPassword(const char* pass) const {
+
+bool User::checkPassword(const String pass) const {
     int i = 0;
-    while (password[i] != '\0' && pass[i] != '\0') {
-        if (password[i] != pass[i]) return false;
+    while (password.data[i] != '\0' && pass.data[i] != '\0') {
+        if (password.data[i] != pass.data[i]) return false;
         i++;
     }
-    return password[i] == pass[i]; //  must reach '\0' at the same time
+    return password.data[i] == pass.data[i]; //  must reach '\0' at the same time
 }

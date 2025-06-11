@@ -3,6 +3,7 @@
 #include <iostream>
 
 Cart::Cart() {
+
     itemCount = 0;
     for (int i = 0; i < MAX_ITEMS; ++i) {
         productIds[i] = 0;
@@ -61,7 +62,7 @@ void Cart::viewCart(Product* products, int productCount) const {
             if (products[j].getId() == id) {
                 double price = qty * products[j].getPrice();
                 total += price;
-                std::cout << "- " << qty << "x " << products[j].getName()
+                std::cout << "- " << qty << "x " << products[j].getName().data
                     << " - " << price << " BGN\n";
                 break;
             }
@@ -91,6 +92,11 @@ bool Cart::isEmpty() const {
     return itemCount == 0;
 }
 
+String Cart::getClientEgn()
+{
+    return clientEgn;
+}
+
 int Cart::getItemCount() const {
     return itemCount;
 }
@@ -108,3 +114,5 @@ int Cart::getQuantityAt(int index) const {
     }
     return 0;
 }
+
+

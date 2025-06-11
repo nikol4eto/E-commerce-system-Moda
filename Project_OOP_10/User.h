@@ -1,20 +1,23 @@
 #pragma once
 #include <iostream>
+#include "String.h"
 
 class User {
 protected:
-    char name[100];
-    char egn[15];
-    char password[50];
+    String name;
+    String egn;
+    String password;
 public:
-    User(const char* nameInput, const char* egnInput, const char* passwordInput);
-    virtual ~User() {}
+    User();
+    User(const String nameInput, const String egnInput, const String passwordInput);
 
     virtual void help() const = 0;
     virtual void logout() = 0;
     virtual void viewProfile() const;
+    virtual String getRole() const;
+    virtual String saveData() const;
 
-    const char* getName() const;
-    const char* getEGN() const;
-    bool checkPassword(const char* pass) const;
+    const String getName() const;
+    const String getEGN() const;
+    bool checkPassword(const String pass) const;
 };

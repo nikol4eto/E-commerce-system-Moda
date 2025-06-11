@@ -14,31 +14,15 @@ System& System::getInstance() {
 }
 
 
-// ---------- String Comparison Helpers ----------
-bool str_equal(const char* a, const char* b) {
-    int i = 0;
-    while (a[i] != '\0' && b[i] != '\0') {
-        if (a[i] != b[i]) return false;
-        i++;
-    }
-    return a[i] == b[i];
-}
-
-bool starts_with(const char* str, const char* prefix) {
-    int i = 0;
-    while (prefix[i] != '\0') {
-        if (str[i] != prefix[i]) return false;
-        i++;
-    }
-    return true;
-}
 
 // ---------- System Constructor ----------
 System::System()
-    : userCount(0), orderCount(0), productCount(0), currentUser(nullptr) {
-    for (int i = 0; i < MAX_USERS; ++i)
-        users[i] = nullptr;
-}
+    : users(new User*[MAX_USERS]), userCount(0),
+    orders(new Order*[MAX_ORDERS]), orderCount(0), 
+    cheques(new Check*[MAX_CHEQUES]), chequesCount(0), 
+    carts(new Cart*[MAX_CARTS]), cartCount(0), 
+    products(new Product*[MAX_PRODUCTS]), productCount(0), 
+    currentUser(nullptr) {}
 
 // ---------- User Operations ----------
 void System::registerUser() {
@@ -54,7 +38,7 @@ void System::registerUser() {
     std::cin.getline(role, 20);
 
     if (str_equal(role, "Client")) {
-        users[userCount++] = new Client(name, egn, password);
+        users[userCount++] = new Client(name, egn, password, 0, 0, Cart());
         std::cout << "Client registered.\n";
     }
     else if (str_equal(role, "Business")) {
@@ -71,16 +55,17 @@ void System::registerUser() {
 }
 
 void System::login() {
-    char name[100], password[50];
+    String name, password;
     std::cout << "Name: ";
-    std::cin.getline(name, 100);
+    std::cin.getline(name.data, 100);
     std::cout << "Password: ";
-    std::cin.getline(password, 50);
+    std::cin.getline(password.data, 50);
 
     for (int i = 0; i < userCount; ++i) {
         if (str_equal(users[i]->getName(), name) && users[i]->checkPassword(password)) {
             currentUser = users[i];
             std::cout << "Login successful.\n";
+            currentRole = users[i]->getRole();
             return;
         }
     }
@@ -94,6 +79,15 @@ void System::logout() {
     }
 }
 
+System::~System()
+{
+    delete[] orders;
+    delete[] carts;
+    delete[] products;
+    delete[] users;
+    delete[] cheques;
+}
+
 // ---------- Product Operations ----------
 void System::addItem() {
     if (!currentUser) {
@@ -102,7 +96,7 @@ void System::addItem() {
     }
 
     Business* b = dynamic_cast<Business*>(currentUser);
-    if (!b) {
+    if (!currentRole.compare("Business")) {
         std::cout << "Only Business users can add items.\n";
         return;
     }
@@ -113,6 +107,7 @@ void System::addItem() {
 
     std::cout << "Product name: ";
     std::cin.getline(name, 100);
+    String nameT = name;
     std::cout << "Price: ";
     std::cin >> price;
     std::cout << "Quantity: ";
@@ -120,9 +115,11 @@ void System::addItem() {
     std::cin.ignore(); // clear newline
     std::cout << "Description: ";
     std::cin.getline(desc, 200);
+    String descT = desc;
 
-    if (productCount < MAX_PRODUCTS) {
-        products[productCount++] = Product(name, price, quantity, desc);
+    if (productCount < MAX_PRODUCTS - 1) {
+        Product a = Product(nameT, currentUser->getEGN(), price, quantity, descT);
+        products[productCount++] = &a;
         std::cout << "Product added successfully.\n";
     }
     else {
@@ -136,15 +133,15 @@ void System::listProducts() {
         return;
     }
     for (int i = 0; i < productCount; ++i) {
-        if (products[i].isAvailable())
-            products[i].printSummary();
+        if (products[i]->isAvailable())
+            products[i]->printSummary();
     }
 }
 
 void System::viewProduct(int id) {
     for (int i = 0; i < productCount; ++i) {
-        if (products[i].getId() == id) {
-            products[i].printDetailed();
+        if (products[i]->getId() == id) {
+            products[i]->printDetailed();
             return;
         }
     }
@@ -153,8 +150,8 @@ void System::viewProduct(int id) {
 
 Product* System::findProductById(int id) {
     for (int i = 0; i < productCount; ++i) {
-        if (products[i].getId() == id) {
-            return &products[i];
+        if (products[i]->getId() == id) {
+            return products[i];
         }
     }
     return nullptr;
@@ -186,13 +183,13 @@ void System::run() {
     }
 }
 
-void System::handleClientCommand(const char* command) {
+void System::handleClientCommand(const String command) {
     Client* client = dynamic_cast<Client*>(currentUser);
     if (!client) return;
 
     if (starts_with(command, "add-to-cart")) {
         int id, qty;
-        if (sscanf_s(command, "add-to-cart %d %d", &id, &qty) == 2) {
+        if (sscanf_s(command.data, "add-to-cart %d %d", &id, &qty) == 2) {
             Product* p = findProductById(id);
             if (p && p->isAvailable() && p->getQuantity() >= qty) {
                 client->addToCart(id, qty);
@@ -208,7 +205,7 @@ void System::handleClientCommand(const char* command) {
     }
     else if (starts_with(command, "remove-from-cart")) {
         int id, qty;
-        if (sscanf_s(command, "remove-from-cart %d %d", &id, &qty) == 2) {
+        if (sscanf_s(command.data, "remove-from-cart %d %d", &id, &qty) == 2) {
             client->removeFromCart(id, qty);
         }
         else {
@@ -216,22 +213,147 @@ void System::handleClientCommand(const char* command) {
         }
     }
     else if (str_equal(command, "view-cart")) {
-        client->viewCart(products, productCount);
+        client->viewCart(*products, productCount);
     }
     else if (str_equal(command, "checkout")) {
         checkout();
     }
 }
 
+void System::load()
+{
+    //Users Load
+    ifstream Users(USERS_FILE);
+    if (!Users.is_open()) {
+        cout << "Failed to open file!" << endl
+            << "Users load failed!" << endl;
+        return;
+    }
+    int length = 0;
+    Users >> length;
+    for (int i = 0; i < length; i++) {
+        String input;
+        Users >> input.data;
+        String* arr = stringToArray(input, ':');
+
+        if (arr[0].compare("Admin")) {
+            Admin a = Admin(arr[1], arr[2], arr[3]);
+            users[userCount] = &a;
+            userCount++;
+        }
+        if (arr[0].compare("Client")) {
+            double balance = 0;
+            int points = 0;
+            tryConvertToDouble(arr[4].data, balance);
+            tryConvertToInt(arr[5].data, points);
+            Client a = Client(arr[1], arr[2], arr[3], balance, points, findCartByEgn(arr[2]));
+            users[userCount] = &a;
+            userCount++;
+        }
+        if (arr[0].compare("Business")) {
+            Business a = Business(arr[1], arr[2], arr[3]);
+            users[userCount] = &a;
+            userCount++;
+        }
+    }
+
+}
+
+void System::save() const
+{
+    //Cheques Save
+    ofstream cFile(CHEQUES_FILE);
+    if (!cFile.is_open()) {
+        cout << "Failed to open file!" << endl;
+        cout << "Cheques save was unsuccessful!" << endl;
+        return;
+    }
+    if (chequesCount > 0)
+        cFile << cheques[chequesCount - 1]->getId() << endl;
+    else
+        cFile << -1 << endl;
+    cFile << chequesCount << endl;
+    for (int i = 0; i < chequesCount; i++) {
+        String output = cheques[i]->saveData();
+        cFile << output.data << endl;
+    }
+    cFile.close();
+
+    //Orders Save
+    ofstream oFile(ORDERS_FILE);
+    if (!oFile.is_open()) {
+        cout << "Failed to open file!" << endl;
+        cout << "Orders save was unsuccessful!" << endl;
+        return;
+    }
+    if (orderCount > 0)
+        oFile << orders[orderCount - 1]->getId() << endl;
+    else
+        oFile << -1 << endl;
+    for (int i = 0; i < orderCount; i++) {
+        int length;
+        String* output = orders[i]->saveData(length);
+        oFile << output[0].data << endl;
+        for (int k = 0; k < length; k++) {
+            oFile << output[k + 1].data << endl;
+        }
+    }
+    oFile.close();
+
+    //Users Save
+    ofstream uFile(USERS_FILE, ios::trunc);
+    if (!uFile.is_open()) {
+        cout << "Failed to open file!" << endl;
+        cout << "Users save was unsuccessful!" << endl;
+        return;
+    }
+    uFile << userCount << endl;
+    for (int i = 0; i < userCount; i++) {
+        String output = users[i]->saveData();
+        uFile << output.data << endl;
+    }
+    uFile.close();
+
+    //Products Save
+    ofstream pFile(PRODUCTS_FILE, ios::trunc);
+
+    if (!pFile.is_open()) {
+        cout << "Failed to open file!" << endl;
+        cout << "Products save was unsuccessful!" << endl;
+        return;
+    }
+    if (productCount > 0)
+        pFile << products[productCount - 1]->getId() << endl;
+    else
+        pFile << -1 << endl;
+    pFile << productCount << endl;
+    for (int i = 0; i < productCount; i++) {
+        String output = products[i]->saveData();
+        pFile << output.data << endl;
+    }
+
+    pFile.close();
+}
+
+Cart System::findCartByEgn(String egn)
+{
+    for (int i = 0; i < cartCount; i++) {
+        Cart a = *carts[i];
+        if (a.getClientEgn().compare(egn)) {
+            return a;
+        }
+    }
+}
+
 // ---------- Checkout ----------
 void System::checkout() {
     Client* client = dynamic_cast<Client*>(currentUser);
-    if (!client) {
+    if (!currentRole.compare("Client")) {
         std::cout << "Only clients can checkout.\n";
         return;
     }
 
-    Cart& cart = client->getCart();
+    Cart cart = client->getCart();
     if (cart.isEmpty()) {
         std::cout << "Your cart is empty.\n";
         return;
@@ -267,7 +389,7 @@ void System::checkout() {
     newOrder.setPoints(static_cast<int>(total * 0.05));
     newOrder.setStatus(PENDING);
 
-    orders[orderCount++] = newOrder;
+    orders[orderCount++] = &newOrder;
     cart = Cart(); // clear cart
     std::cout << "Order placed successfully. Awaiting approval.\n";
 }

@@ -1,32 +1,40 @@
 #pragma once
 #include <iostream>
+#include <fstream>
+#include "String.h"
+#include "Constants.h"
 
+using namespace std;
 class Product {
 private:
     static int nextId;
     int id;
-    char name[100];
+    String businessEgn;
+    String name;
     double price;
     int quantity;
-    char description[200];
+    String description;
     double rating; // 0-5, average
     int ratingCount;
+    bool available;
 public:
     Product();
-    Product(const char* nameInput, double price, int quantity, const char* descriptionInput);
+    Product(String& nameInput, String _businessEgn, double price, int quantity, String& descriptionInput);
 
     int getId() const;
-    const char* getName() const;
+    const String getName() const;
     double getPrice() const;
     int getQuantity() const;
-    const char* getDescription() const;
+    const String getDescription() const;
     double getRating() const;
     bool isAvailable() const;
 
     void decreaseQuantity(int q);
     void increaseQuantity(int q);
     void rate(int stars);
+    String saveData();
 
     void printSummary() const;
     void printDetailed() const;
+    int getLatestId();
 };
